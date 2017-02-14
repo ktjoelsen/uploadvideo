@@ -1,0 +1,16 @@
+.DS_Store
+
+client_secrets.json
+videobooth.py-oauth2.json
+
+*.pyc
+videos/.DS_Store
+
+videos/temp_video/*
+!videos/temp_video/.gitkeep
+
+videos/temp_audio/*
+!videos/temp_audio/.gitkeep
+
+videos/final/*
+!videos/final/.gitkeep

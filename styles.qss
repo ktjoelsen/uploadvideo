@@ -1,0 +1,5 @@
+
+QLabel#PromptQuestionLabel {
+    /*background: red;*/
+}
+
