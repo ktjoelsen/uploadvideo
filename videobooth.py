@@ -303,8 +303,31 @@ class ControlWindow(QtWidgets.QWidget):
         self.kerberos_inputbox = QtWidgets.QLineEdit()
         self.kerberos_inputbox.setPlaceholderText("Your kerberos")
         kerberos_horizontal_layout.addWidget(self.kerberos_inputbox)
-
         vertical_layout.addLayout(kerberos_horizontal_layout)
+
+
+        # input MIT affiliation
+        mitAffiliation_horizontal_layout = QtWidgets.QHBoxLayout()
+        self.mitAffiliationLabel = QtWidgets.QLabel("MIT affiliation")
+        self.mitAffiliationLabel.setObjectName("mitAffiliationLabel")
+        mitAffiliation_horizontal_layout.addWidget(self.mitAffiliationLabel)
+        
+        self.mitAffiliation_inputbox = QtWidgets.QLineEdit()
+        self.mitAffiliation_inputbox.setPlaceholderText("(grad / undergrad / staff)")
+        mitAffiliation_horizontal_layout.addWidget(self.mitAffiliation_inputbox)
+        vertical_layout.addLayout(mitAffiliation_horizontal_layout)
+
+
+        # input MIT course
+        mitCourse_horizontal_layout = QtWidgets.QHBoxLayout()
+        self.mitCourseLabel = QtWidgets.QLabel("MIT Course")
+        self.mitCourseLabel.setObjectName("mitCourseLabel")
+        mitCourse_horizontal_layout.addWidget(self.mitCourseLabel)
+        
+        self.mitCourse_inputbox = QtWidgets.QLineEdit()
+        self.mitCourse_inputbox.setPlaceholderText("e.g. 3, 20, CMS, etc.")
+        mitCourse_horizontal_layout.addWidget(self.mitCourse_inputbox)
+        vertical_layout.addLayout(mitCourse_horizontal_layout)
 
 
         self.uploadStatusLabel = QtWidgets.QLabel("Nothing uploaded yet")
@@ -354,6 +377,13 @@ class ControlWindow(QtWidgets.QWidget):
             if button.isChecked():
                 self.selected_prompt = button.text()
 
+
+        # retrieve MIT affiliation
+        self.mitAffiliation = self.mitAffiliation_inputbox.text()
+
+        # retrieve MIT course number
+        self.mitCourse = self.mitCourse_inputbox.text()
+
         # retrieve kerberos
         self.kerberos = self.kerberos_inputbox.text()
         
@@ -361,6 +391,7 @@ class ControlWindow(QtWidgets.QWidget):
             self.kerberosLabel.setStyleSheet('QLabel#KerberosLabel {color: red;}')
             return
             
+
         
         else:
             processing_thread = threading.Thread(target=self._upload)
@@ -373,6 +404,9 @@ class ControlWindow(QtWidgets.QWidget):
             self.uploadStatusLabel.setText("Uploaded video for user " + self.kerberos)
             self.kerberos_inputbox.setText("")
             self.kerberosLabel.setStyleSheet('QLabel#KerberosLabel {color: black;}')
+
+            self.mitAffiliation_inputbox.setText("")
+            self.mitCourse_inputbox.setText("")
 
 
     def _upload(self):
@@ -387,12 +421,15 @@ class ControlWindow(QtWidgets.QWidget):
 
 
         # tell Node server that video was uploaded
+
         payload = {
             'youtubeId': youtubeId,
             'title': title,
             'kerberos': self.kerberos,
-            'recordingDate': json.dumps(datetime.datetime.now(), default=json_serial),
-            'upvotes': 0
+            'recordingDate': datetime.datetime.now().strftime('%Y/%m/%d %H:%M'),
+            'upvotes': 0,
+            'mitAffiliation': self.mitAffiliation,
+            'mitCourse': self.mitCourse
         }
         
         payload = json.dumps(payload)
