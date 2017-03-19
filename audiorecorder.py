@@ -75,3 +75,7 @@ class AudioRecorder():
         self.WAVE_OUTPUT_FILENAME = filename
         self.recording = False
 
+    def cancel(self):
+        self.recording = False
+    
+

@@ -26,7 +26,6 @@ FINAL_AV_DIR = 'videos/final'
 
 PROMPTS = [
     'What is your hometown and what is your favorite thing about it?',
-    'What did you do for fun last weekend?',
     'What is a project you are working on right now?',
     'Who is your favorite author and why?'
 ]
@@ -132,7 +131,11 @@ class CameraDevice(QtWidgets.QWidget):
         self.microphone.start()
 
         print 'Started video and audio recording'
-        
+    
+    def cancel(self):
+        self.recording = False
+        self.microphone.cancel()
+
 
     def stop(self):
         """Stop video and audio recording"""
@@ -247,52 +250,99 @@ class ControlWindow(QtWidgets.QWidget):
         # create camera
         self.cameraDevice = CameraDevice()
         self.cameraWidget = CameraWidget(self.cameraDevice)
-
-
+        
         # create layout w/ camera preview
         vertical_layout = QtWidgets.QVBoxLayout(self)
         vertical_layout.addWidget(self.cameraWidget)
 
+
+        # container widget to control screens
+        self.start_frame = QtWidgets.QFrame()
+        self.start_frame_layout = QtWidgets.QVBoxLayout(self.start_frame)
+        vertical_layout.addWidget(self.start_frame)
+
         # add prompt selection
-        self.promptQuestionLabel = QtWidgets.QLabel("What will you answer today?")
+        self.promptQuestionLabel = QtWidgets.QLabel("What will you share?")
         self.promptQuestionLabel.setObjectName("PromptQuestionLabel")
         self.promptQuestionLabel.setFont(QtGui.QFont('SansSerif', 30))   
         self.promptQuestionLabel.setAlignment(QtCore.Qt.AlignCenter)
-        vertical_layout.addWidget(self.promptQuestionLabel)
+        self.start_frame_layout.addWidget(self.promptQuestionLabel)
 
+        # add question from previous user
+        self.prevQuestionLabel = QtWidgets.QLabel("Question from previous user")
+        self.prevQuestionLabel.setObjectName("PromptQuestionLabel")
+        self.prevQuestionLabel.setFont(QtGui.QFont('SansSerif', 15))   
+        self.start_frame_layout.addWidget(self.prevQuestionLabel)
+
+        
 
         # group radio buttons
         self.prompt_group = QtWidgets.QButtonGroup(vertical_layout) 
 
+        self.prev_question_button = QtWidgets.QRadioButton('How did you grow up?')
+        self.prompt_group.addButton(self.prev_question_button)
+        self.start_frame_layout.addWidget(self.prev_question_button)
+
+        # add question from previous user
+        self.prevQuestionLabel = QtWidgets.QLabel("Other questions")
+        self.prevQuestionLabel.setObjectName("PromptQuestionLabel")
+        self.prevQuestionLabel.setFont(QtGui.QFont('SansSerif', 15))   
+        self.start_frame_layout.addWidget(self.prevQuestionLabel)
+
+        
         # create radio button for each prompt
         for prompt in PROMPTS:
             prompt_radio_button = QtWidgets.QRadioButton(prompt)
             self.prompt_group.addButton(prompt_radio_button)
-            vertical_layout.addWidget(prompt_radio_button)
-
+            self.start_frame_layout.addWidget(prompt_radio_button)
+        
         # make one default selected
         self.prompt_group.buttons()[0].setChecked(True)
+
 
 
         # define buttons
         self.start_button = QtWidgets.QPushButton('Start Recording')
         self.start_button.clicked.connect(self.startRecording)
-        
+
+        self.start_frame_layout.addWidget(self.start_button)
+
+
+        # container widget to control screens
+        self.recording_frame = QtWidgets.QFrame()
+        self.recording_frame_layout = QtWidgets.QVBoxLayout(self.recording_frame)
+        vertical_layout.addWidget(self.recording_frame)
+
+
+    
+        # progress bar
+        # self.progress_bar = QtWidgets.QProgressBar(self)   
+        # self.progress_bar.setMinimum(1)
+        # self.progress_bar.setMaximum(30)     
+        # self.progress_bar.setGeometry(30, 40, 200, 25)
+        # self.recording_frame_layout.addWidget(self.progress_bar)
+        # self._active = False
+
+
+        # self.instructionLabel = QtWidgets.QLabel("Talk for ~30 seconds")
+        # self.recording_frame_layout.addWidget(self.instructionLabel)
+
+
         self.stop_button = QtWidgets.QPushButton('Stop Recording')
         self.stop_button.clicked.connect(self.stopRecording)
-        self.stop_button.setDisabled(True)
+        # self.stop_button.setDisabled(True)
+        self.recording_frame_layout.addWidget(self.stop_button)
 
-        self.submit_button = QtWidgets.QPushButton('Upload Video')
-        self.submit_button.clicked.connect(self.uploadVideo)
-        self.submit_button.setDisabled(True)
+        self.recording_frame.hide()
 
-   
 
-        buttonhorizontalbox = QtWidgets.QHBoxLayout()
-        buttonhorizontalbox.addWidget(self.start_button)
-        buttonhorizontalbox.addWidget(self.stop_button)
-        buttonhorizontalbox.addWidget(self.submit_button)        
-        vertical_layout.addLayout(buttonhorizontalbox)
+
+        # container widget to control screens
+        self.submit_frame = QtWidgets.QFrame()
+        self.submit_frame.hide()
+        self.submit_frame_layout = QtWidgets.QVBoxLayout(self.submit_frame)
+        vertical_layout.addWidget(self.submit_frame)
+        
 
         # input kerberos
         kerberos_horizontal_layout = QtWidgets.QHBoxLayout()
@@ -303,36 +353,62 @@ class ControlWindow(QtWidgets.QWidget):
         self.kerberos_inputbox = QtWidgets.QLineEdit()
         self.kerberos_inputbox.setPlaceholderText("Your kerberos")
         kerberos_horizontal_layout.addWidget(self.kerberos_inputbox)
-        vertical_layout.addLayout(kerberos_horizontal_layout)
+        self.submit_frame_layout.addLayout(kerberos_horizontal_layout)
 
-
-        # input MIT affiliation
-        mitAffiliation_horizontal_layout = QtWidgets.QHBoxLayout()
-        self.mitAffiliationLabel = QtWidgets.QLabel("MIT affiliation")
-        self.mitAffiliationLabel.setObjectName("mitAffiliationLabel")
-        mitAffiliation_horizontal_layout.addWidget(self.mitAffiliationLabel)
+        # ask the next question
+        nextquestion_horizontal_layout = QtWidgets.QHBoxLayout()
+        self.nextquestionLabel = QtWidgets.QLabel("Next question")
+        self.nextquestionLabel.setObjectName("nextquestionLabel")
+        nextquestion_horizontal_layout.addWidget(self.nextquestionLabel)
         
-        self.mitAffiliation_inputbox = QtWidgets.QLineEdit()
-        self.mitAffiliation_inputbox.setPlaceholderText("(grad / undergrad / staff)")
-        mitAffiliation_horizontal_layout.addWidget(self.mitAffiliation_inputbox)
-        vertical_layout.addLayout(mitAffiliation_horizontal_layout)
+        self.nextquestion_inputbox = QtWidgets.QLineEdit()
+        self.nextquestion_inputbox.setPlaceholderText("(Who is the spiciest memelord?)")
+        nextquestion_horizontal_layout.addWidget(self.nextquestion_inputbox)
+        self.submit_frame_layout.addLayout(nextquestion_horizontal_layout)
 
 
-        # input MIT course
-        mitCourse_horizontal_layout = QtWidgets.QHBoxLayout()
-        self.mitCourseLabel = QtWidgets.QLabel("MIT Course")
-        self.mitCourseLabel.setObjectName("mitCourseLabel")
-        mitCourse_horizontal_layout.addWidget(self.mitCourseLabel)
+        # add cancel or submit buttons
+        cancel_submit_button_layout = QtWidgets.QHBoxLayout()
         
-        self.mitCourse_inputbox = QtWidgets.QLineEdit()
-        self.mitCourse_inputbox.setPlaceholderText("e.g. 3, 20, CMS, etc.")
-        mitCourse_horizontal_layout.addWidget(self.mitCourse_inputbox)
-        vertical_layout.addLayout(mitCourse_horizontal_layout)
+        # cancel button
+        self.cancel_button = QtWidgets.QPushButton('Redo video')
+        self.cancel_button.clicked.connect(self.cancel)
+        cancel_submit_button_layout.addWidget(self.cancel_button)
+        
+        # submit button
+        self.submit_button = QtWidgets.QPushButton('Upload video')
+        self.submit_button.clicked.connect(self.uploadVideo)
+        cancel_submit_button_layout.addWidget(self.submit_button)
+        # self.submit_button.setDisabled(True)
+
+        self.submit_frame_layout.addLayout(cancel_submit_button_layout)
+
+        # # input MIT affiliation
+        # mitAffiliation_horizontal_layout = QtWidgets.QHBoxLayout()
+        # self.mitAffiliationLabel = QtWidgets.QLabel("MIT affiliation")
+        # self.mitAffiliationLabel.setObjectName("mitAffiliationLabel")
+        # mitAffiliation_horizontal_layout.addWidget(self.mitAffiliationLabel)
+        
+        # self.mitAffiliation_inputbox = QtWidgets.QLineEdit()
+        # self.mitAffiliation_inputbox.setPlaceholderText("(grad / undergrad / staff)")
+        # mitAffiliation_horizontal_layout.addWidget(self.mitAffiliation_inputbox)
+        # vertical_layout.addLayout(mitAffiliation_horizontal_layout)
+
+
+        # # input MIT course
+        # mitCourse_horizontal_layout = QtWidgets.QHBoxLayout()
+        # self.mitCourseLabel = QtWidgets.QLabel("MIT Course")
+        # self.mitCourseLabel.setObjectName("mitCourseLabel")
+        # mitCourse_horizontal_layout.addWidget(self.mitCourseLabel)
+        
+        # self.mitCourse_inputbox = QtWidgets.QLineEdit()
+        # self.mitCourse_inputbox.setPlaceholderText("e.g. 3, 20, CMS, etc.")
+        # mitCourse_horizontal_layout.addWidget(self.mitCourse_inputbox)
+        # vertical_layout.addLayout(mitCourse_horizontal_layout)
 
 
         self.uploadStatusLabel = QtWidgets.QLabel("Nothing uploaded yet")
         vertical_layout.addWidget(self.uploadStatusLabel)
-
 
 
         self.setLayout(vertical_layout)
@@ -346,22 +422,52 @@ class ControlWindow(QtWidgets.QWidget):
 
     def startRecording(self):
 
-        self.start_button.setText("Recording...")
+        # if not self._active:
+        #     self._active = True
+        #     # self.button.setText('Stop')
+        #     if self.progress_bar.value() == self.progress_bar.maximum():
+        #         self.progress_bar.reset()
+        #     QtCore.QTimer.singleShot(0, self.startLoop)
+        # else:
+        #     self._active = False
+        
+        # self.start_button.setText("Recording...")
+        self.start_frame.hide()
+        self.recording_frame.show()
 
         # self.kerberos = ""
-        self.start_button.setDisabled(True) 
-        self.stop_button.setDisabled(False)
+        # self.start_button.setDisabled(True) 
+        # self.stop_button.setDisabled(False)
 
         
         # start recording
         self.cameraDevice.start()
 
+    def startLoop(self):
+        ## make this loop for 30 seconds
+        while True:
+            time.sleep(0.05)
+            value = self.progress_bar.value() + 1
+            self.progress_bar.setValue(value)
+            QtWidgets.QApplication.processEvents()
+            if (not self._active or
+                value >= self.progress_bar.maximum()):
+                break
+
+        self._active = False
+
+    def cancel(self):
+        self.start_frame.show()
+        self.recording_frame.hide()
+        self.submit_frame.hide()  
+
+        self.cameraDevice.cancel()  
+
 
     def stopRecording(self):
-        self.start_button.setText("Start Recording")
-        self.stop_button.setDisabled(True)
-        self.submit_button.setDisabled(False)
 
+        self.recording_frame.hide()
+        self.submit_frame.show()
 
         # stop recording
         self.cameraDevice.stop()
@@ -379,34 +485,42 @@ class ControlWindow(QtWidgets.QWidget):
 
 
         # retrieve MIT affiliation
-        self.mitAffiliation = self.mitAffiliation_inputbox.text()
+        # self.mitAffiliation = self.mitAffiliation_inputbox.text()
 
         # retrieve MIT course number
-        self.mitCourse = self.mitCourse_inputbox.text()
+        # self.mitCourse = self.mitCourse_inputbox.text()
 
         # retrieve kerberos
         self.kerberos = self.kerberos_inputbox.text()
+
+        # retrieve new question
+        self.prev_question = self.nextquestion_inputbox.text()
+        self.prev_question_button.setText(self.prev_question)
+
+
+
         
         if self.kerberos == "":
             self.kerberosLabel.setStyleSheet('QLabel#KerberosLabel {color: red;}')
             return
-            
-
+        
         
         else:
             processing_thread = threading.Thread(target=self._upload)
             processing_thread.start()
 
-            self.stop_button.setDisabled(True)
-            self.submit_button.setDisabled(True)
-            self.start_button.setDisabled(False)
+            self.start_frame.show()
+            self.recording_frame.hide()
+            self.submit_frame.hide()
 
             self.uploadStatusLabel.setText("Uploaded video for user " + self.kerberos)
             self.kerberos_inputbox.setText("")
             self.kerberosLabel.setStyleSheet('QLabel#KerberosLabel {color: black;}')
 
-            self.mitAffiliation_inputbox.setText("")
-            self.mitCourse_inputbox.setText("")
+            self.nextquestion_inputbox.setText("")
+
+            # self.mitAffiliation_inputbox.setText("")
+            # self.mitCourse_inputbox.setText("")
 
 
     def _upload(self):
@@ -428,13 +542,15 @@ class ControlWindow(QtWidgets.QWidget):
             'kerberos': self.kerberos,
             'recordingDate': datetime.datetime.now().strftime('%Y/%m/%d %H:%M'),
             'upvotes': 0,
-            'mitAffiliation': self.mitAffiliation,
-            'mitCourse': self.mitCourse
+            'newQuestion': self.prev_question,
+            'promptString': self.selected_prompt
+            # 'mitAffiliation': self.mitAffiliation,
+            # 'mitCourse': self.mitCourse
         }
         
         payload = json.dumps(payload)
-
-        url = 'http://localhost:3000/upload'
+        
+        url = 'https://mitpeople.herokuapp.com/upload'
         headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
         r = requests.post(url, headers=headers, data=payload)
 
@@ -456,5 +572,6 @@ if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     window = ControlWindow()
     sys.exit(app.exec_())
+
 
 
